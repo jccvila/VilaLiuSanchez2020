@@ -2,73 +2,79 @@ rm(list=ls())
 library(data.table)
 library(readr)
 set.seed(1)
+#Script 1 for Extract data  from DADA2 output and rarefies to constant read depth. 
+# Stores into a melted data.frame with standardized columns for subsequent analysis.
 
-
-
-#Download Data
-aux = fread('../Data/metadata.csv')
-Taxonomy_Data = fread('../Data/taxonomy.csv')
-OTU_Data = fread('../Data/otu_table.csv')
-OTU_Data = as.matrix(OTU_Data[,2:ncol(OTU_Data)])
-rownames(OTU_Data) = seq(1,nrow(OTU_Data))
-colnames(OTU_Data) = seq(1,ncol(OTU_Data))
-OTU_Data = data.table(OTU_Data)
-sample_size = min(colSums(OTU_Data))
-
-# normalize to sample count
-for(i in 1:ncol(OTU_Data)){OTU_Data
-  old_column = OTU_Data[,i,with=FALSE][[1]]
-  elements = factor(row.names(OTU_Data),levels=row.names(OTU_Data))
-  sample = table(sample(rep(elements,old_column),sample_size,replace =FALSE))
-  OTU_Data[,(i) := as.numeric(sample)]
+rarefy <- function(dat,n =min(colSums(dat))){
+  # normalize to sample count
+  for(i in 1:ncol(dat)){dat
+    old_column = dat[,i,with=FALSE][[1]]
+    elements = factor(row.names(dat),levels=row.names(dat))
+    sample = table(sample(rep(elements,old_column),n,replace =FALSE))
+    dat[,(i) := as.numeric(sample)]
+  }
+  return(dat)
 }
 
-#Extract Taxonomic Data and labels Familys (I'll create an ID for each ESV based on the highest taxonomic level that  has been assigned
-OTU_Data$ESV_ID = Taxonomy_Data$Genus
-OTU_Data$ESV_ID[which(is.na(OTU_Data$ESV_ID))] = Taxonomy_Data$Family[which(is.na(OTU_Data$ESV_ID))]
-OTU_Data$ESV_ID[which(is.na(OTU_Data$ESV_ID))] = Taxonomy_Data$Order[which(is.na(OTU_Data$ESV_ID))]
-OTU_Data$ESV_ID[which(is.na(OTU_Data$ESV_ID))] = Taxonomy_Data$Class[which(is.na(OTU_Data$ESV_ID))]
-OTU_Data$ESV_ID[which(is.na(OTU_Data$ESV_ID))] = Taxonomy_Data$Phylum[which(is.na(OTU_Data$ESV_ID))]
-OTU_Data$ESV_ID[which(is.na(OTU_Data$ESV_ID))] = Taxonomy_Data$Kingdom[which(is.na(OTU_Data$ESV_ID))]
-OTU_Data$ESV_ID = as.factor(make.unique(OTU_Data$ESV_ID))
-Taxonomy_Data$ESV_ID = OTU_Data$ESV_ID
+assign_taxonomy_id <- function(dat){
+  #Asigns ID to the higest available taxonomic level
+  dat$ESV_ID = dat$Genus
+  dat$ESV_ID[which(is.na(dat$ESV_ID))] = dat$Family[which(is.na(dat$ESV_ID))]
+  dat$ESV_ID[which(is.na(dat$ESV_ID))] = dat$Order[which(is.na(dat$ESV_ID))]
+  dat$ESV_ID[which(is.na(dat$ESV_ID))] = dat$Class[which(is.na(dat$ESV_ID))]
+  dat$ESV_ID[which(is.na(dat$ESV_ID))] = dat$Phylum[which(is.na(dat$ESV_ID))]
+  dat$ESV_ID[which(is.na(dat$ESV_ID))] = dat$Kingdom[which(is.na(dat$ESV_ID))]
+  dat$ESV_ID = as.factor(make.unique(dat$ESV_ID))
+  #Make NA use ESV_ID to avoid counting them as the same group
+  dat[is.na(dat$Genus)]$Genus = as.character(dat[is.na(dat$Genus)]$ESV_ID)
+  dat[is.na(dat$Family)]$Family = dat[is.na(dat$Family)]$Genus
+  dat[is.na(dat$Order)]$Order = dat[is.na(dat$Order)]$Family
+  dat[is.na(dat$Class)]$Class = dat[is.na(dat$Class)]$Order
+  dat[is.na(dat$Phylum)]$Phylum = dat[is.na(dat$Phylum)]$Class
+  
+  return(dat)
+}
+set.seed(1) # To ensure reproducibility
+
+#Load Data
+aux = fread('../Data/metadata.csv')
+Taxonomy_Data = fread('../Data/taxonomy.csv')
+Abundance_Data = fread('../Data/otu_table.csv') #Data is actually at an ESV level
+
+#Rarefy
+Abundance_Data = as.matrix(Abundance_Data[,2:ncol(Abundance_Data)])
+Abundance_Data = data.table(Abundance_Data)
+Abundance_Data = rarefy(Abundance_Data) 
+
+Taxonomy_Data = assign_taxonomy_id(Taxonomy_Data) #Assign Taxonomy ID
+Abundance_Data = t(t(Abundance_Data)/colSums(Abundance_Data)) #Calculated Relative Abundance of ESVs
 
 
-#Calculated Relative Abundance at a given taxonomic level (here ESV )
-OTU_Data = OTU_Data[ ,lapply(.SD,sum), by = ESV_ID]
-colnames(OTU_Data) = c('ESV_ID',as.character(aux$Carbon))
-OTU_Data= OTU_Data[rowSums(OTU_Data[,2:ncol(OTU_Data)])>0.0,]
-RAD = OTU_Data[,2:ncol(OTU_Data)]
-RAD = data.table(t(t(as.matrix(RAD))/colSums(as.matrix(RAD))))
 
-#Create ID 
-cref = colnames(RAD)
+#Create Sample_ID from carbon source, community, replicate and trasnfer point
+cref = aux$Carbon
+cref[is.na(cref)] <- 'Original' #T0 inoculum
 comref = parse_number(as.character(aux$Comm))
 repref = as.numeric(aux$Rep)
 tref = as.numeric(aux$Transfer)
-colnames(RAD)= paste(cref,comref,repref,tref,sep='.')
-RAD$ESV_ID = OTU_Data$ESV_ID
+colnames(Abundance_Data)= paste(cref,comref,repref,tref,sep='.')
+Abundance_Data = data.table(Abundance_Data)
+Abundance_Data$ESV_ID = Taxonomy_Data$ESV_ID
 
 #Now convert matrix into a data.frame using melt
-plot_OTU_data = melt(RAD,id= c('ESV_ID'))
-plot_OTU_data = plot_OTU_data[value>0,]
-plot_OTU_data$Carbon_Source =sapply(plot_OTU_data$variable,function(x) strsplit(as.character(x),'[.]')[[1]][1])
-plot_OTU_data$Com_No =sapply(plot_OTU_data$variable,function(x) strsplit(as.character(x),'[.]')[[1]][2])
-plot_OTU_data$Replicate_No =sapply(plot_OTU_data$variable,function(x) strsplit(as.character(x),'[.]')[[1]][3])
-plot_OTU_data$Transfer_No =sapply(plot_OTU_data$variable,function(x) strsplit(as.character(x),'[.]')[[1]][4])
-plot_OTU_data$ESV_ID = droplevels(plot_OTU_data$ESV_ID)
-colnames(plot_OTU_data) =c('ESV_ID','Sample_ID','Relative_Abundance','Carbon_Source','Inoculum','Replicate','Transfer')
+Abundance_Data = melt(Abundance_Data,id= c('ESV_ID'),variable.name ='Sample_ID',value.name = 'Relative_Abundance')
+Abundance_Data = Abundance_Data[Relative_Abundance>0,]
+#Extract caronb source, community,replicate number and transfer point from sample id
 
-#Nan are the original inoculum
-plot_OTU_data[grep('NaN',plot_OTU_data$Sample_ID),]$Sample_ID <- paste('Original',sapply(plot_OTU_data[grep('NaN',plot_OTU_data$Sample_ID),]$Sample_ID,function(x) strsplit(as.character(x),'[.]')[[1]][2]),sep='.')
-plot_OTU_data[grep('Original',plot_OTU_data$Sample_ID),]$Carbon_Source = 'NaN'
+Abundance_Data$Carbon_Source =sapply(Abundance_Data$Sample_ID,function(x) strsplit(as.character(x),'[.]')[[1]][1])
+Abundance_Data$Inoculum =sapply(Abundance_Data$Sample_ID,function(x) strsplit(as.character(x),'[.]')[[1]][2])
+Abundance_Data$Replicate =sapply(Abundance_Data$Sample_ID,function(x) strsplit(as.character(x),'[.]')[[1]][3])
+Abundance_Data$Transfer =sapply(Abundance_Data$Sample_ID,function(x) strsplit(as.character(x),'[.]')[[1]][4])
+Abundance_Data$ESV_ID = droplevels(Abundance_Data$ESV_ID)
 
 #Merge with taxonomy
-merged_data = merge(Taxonomy_Data,plot_OTU_data)
-merged_data[is.na(merged_data$Genus)]$Genus = as.character(merged_data[is.na(merged_data$Genus)]$ESV_ID)
-merged_data[is.na(merged_data$Family)]$Family = merged_data[is.na(merged_data$Family)]$Genus
-merged_data[is.na(merged_data$Order)]$Order = merged_data[is.na(merged_data$Order)]$Family
-merged_data[]
+merged_data = merge(Taxonomy_Data,Abundance_Data)
+
 #Save Eveything
 fwrite(merged_data,'../Data/Emergent_Comunity_Data.csv')
 #Save Equilibrium

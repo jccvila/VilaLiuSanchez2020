@@ -2,6 +2,7 @@ rm(list=ls())
 library(data.table)
 
 calc_lowess<- function(data){
+  #fit LOWESS To data and return predicted data.points
   xs = seq(0,1,length=501)
   m <- loess(data$Dissimilarity ~ data$Overlap,span=0.2,family="symmetric",iterations=5,statistics='none')
   y = predict(m,xs)
@@ -9,6 +10,7 @@ calc_lowess<- function(data){
 }
 
 calc_lm<- function(data,med){
+  #fit lm to data (above median overlap) and return predicted datapoints.
   xs = seq(0,1,length=501)
   data = data[Overlap>med]
   m <- lm(Dissimilarity ~ Overlap,data)
@@ -52,200 +54,169 @@ save_summary <-function(olm,lowess,fn){
   return()
 }
 generate_curves <- function(dat,n,null){
-  # FITS Lowess and OLM for every bootstrap realization for Fig 2A-E
-  #Same Environment broken down by Csources
-  olm<- c()
-  lowess<- c()
-  A_olm <- c()
-  A_lowess<- c()
-  B_olm<- c()
-  B_lowess<- c()
-  C_olm<- c()
-  C_lowess<- c()
+  # FITS Lowess and OLM for every bootstrap realization for all of the different subests plotted in the paper (each chunk
+  # IS fitted with respect to a one median value)
+  #Same Environment broken down by Csources pair  and by same inouculum for figure 1 and S1
+  SameEnv_olm = c()
+  SameEnv_lowess = c()
+  SameEnvSameInoc_olm = c()
+  SameEnvSameInoc_lowess= c()
+  SameEnvDiffInoc_olm = c()
+  SameEnvDiffInoc_lowess= c()
+  Glc_olm <- c()
+  Glc_lowess<- c()
+  Cit_olm<- c()
+  Cit_lowess<- c()
+  Leu_olm<- c()
+  Leu_lowess<- c()
+
   
-  #Different Environment broken donw by csource
-  D_olm<- c()
-  D_lowess<- c()
-  E_olm<- c()
-  E_lowess<- c()
-  F_olm<- c()
-  F_lowess<- c()
-  G_olm<- c()
-  G_lowess<- c()
+  #Different Environment broken down by Csources pair for figure s2 and s3
+  DiffEnv_olm = c()
+  DiffEnv_lowess = c()
+  Glc_Cit_olm <- c()
+  Glc_Cit_lowess<- c()
+  Glc_Leu_olm<- c()
+  Glc_Leu_lowess<- c()
+  Cit_Leu_olm<- c()
+  Cit_Leu_lowess<- c()
+  DiffEnvSameInoc_olm = c()
+  DiffEnvSameInoc_lowess = c()
+  DiffEnvDiffInoc_olm = c()
+  DiffEnvDiffInoc_lowess = c()
   
-  #Same/Different Environment broken down Inoculum
-  H_olm<- c()
-  H_lowess<- c()
-  I_olm<- c()
-  I_lowess<- c()
-  J_olm<- c()
-  J_lowess<- c()
-  K_olm<- c()
-  K_lowess<- c()
-  
-  #All Environment broken down same environment and same inouclum
-  L_olm<- c()
-  L_lowess<- c()
-  M_olm<- c()
-  M_lowess<- c()
-  N_olm<- c()
-  N_lowess<- c()
-  O_olm<- c()
-  O_lowess<- c()
-  P_olm<- c()
-  P_lowess<- c()
+  #Break down by different combinations of same environment and same inoculum for figure s10
+  All_olm<- c() #All
+  All_lowess<- c() #All
+  All_SameEnvSameInoc_olm = c() 
+  All_SameEnvSameInoc_lowess = c()
+  All_DiffEnvSameInoc_olm = c()
+  All_DiffEnvSameInoc_lowess = c()
+  All_SameEnvDiffInoc_olm = c()
+  All_SameEnvDiffInoc_lowess = c()
+  All_DiffEnvDiffInoc_olm = c()
+  All_DiffEnvDiffInoc_lowess = c()
 
   for(j in 1:n){
     print(j)
-    #First data for same environment (using median for same environment)
-    tdoc_df = dat[Run==j & Same_Environment == TRUE,]
-    tAd <- tdoc_df[Carbon_Source_1 == 'Glucose',]
-    tBd <-tdoc_df[Carbon_Source_1 == 'Citrate',]
-    tCd <- tdoc_df[Carbon_Source_1 == 'Leucine',]
-    olm<- rbind(olm,calc_lm(tdoc_df,median(tdoc_df$Overlap)))
-    lowess<- rbind(lowess,calc_lowess(tdoc_df))
-    A_olm<- rbind(A_olm,calc_lm(tAd,median(tdoc_df$Overlap)))
-    A_lowess<- rbind(A_lowess,calc_lowess(tAd))
-    B_olm<- rbind(B_olm,calc_lm(tBd,median(tdoc_df$Overlap)))
-    B_lowess<- rbind(B_lowess,calc_lowess(tBd))
-    C_olm<- rbind(C_olm,calc_lm(tCd,median(tdoc_df$Overlap)))
-    C_lowess<- rbind(C_lowess,calc_lowess(tCd))
+    #Data for all pairs
+    All = dat[Run==j,]
     
-    #next data for different environment (using median for different environment)
-    tDd = dat[Run==j & Same_Environment == FALSE,]
-    tEd <- tDd[Carbon_Source_1 == 'Glucose' & Carbon_Source_2 == 'Citrate',]
-    tFd <-tDd[Carbon_Source_1 == 'Leucine' & Carbon_Source_2 == 'Citrate',]
-    tGd <- tDd[Carbon_Source_1 == 'Leucine' & Carbon_Source_2 == 'Glucose',]
-    D_olm<- rbind(D_olm,calc_lm(tDd,median(tDd$Overlap)))
-    D_lowess<- rbind(D_lowess,calc_lowess(tDd))
-    E_olm<- rbind(E_olm,calc_lm(tEd,median(tDd$Overlap)))
-    E_lowess<- rbind(E_lowess,calc_lowess(tEd))
-    F_olm<- rbind(F_olm,calc_lm(tFd,median(tDd$Overlap)))
-    F_lowess<- rbind(F_lowess,calc_lowess(tFd))
-    G_olm<- rbind(G_olm,calc_lm(tGd,median(tDd$Overlap)))
-    G_lowess<- rbind(G_lowess,calc_lowess(tGd))
+    #First data for same environment
+    SameEnvdf = All[Same_Environment == TRUE]
+    Glcdf <- SameEnvdf[Carbon_Source_1 == 'Glucose',]
+    Citdf <-SameEnvdf[Carbon_Source_1 == 'Citrate',]
+    Leudf <- SameEnvdf[Carbon_Source_1 == 'Leucine',]
+    SameEnvSameInocdf = SameEnvdf[Same_Inoculum==TRUE]
+    SameEnvDiffInocdf = SameEnvdf[Same_Inoculum==FALSE]
     
-    #next data for all environment (using median for all environment pairs)
-    tHd = dat[Run==j & Same_Environment == TRUE & Same_Inoculum ==TRUE,]
-    tId = dat[Run==j & Same_Environment == TRUE  & Same_Inoculum ==FALSE,]
-    tJd = dat[Run==j & Same_Environment == FALSE  & Same_Inoculum ==TRUE,]
-    tKd = dat[Run==j & Same_Environment == FALSE &  Same_Inoculum ==FALSE,]
-    tLd = dat[Run==j,]
+    #next data for different environment
+    DiffEnvdf = All[Same_Environment == FALSE]
+    GlcCitdf <- DiffEnvdf[Carbon_Source_1 == 'Glucose' & Carbon_Source_2 == 'Citrate',]
+    GlcLeudf <-DiffEnvdf[Carbon_Source_1 == 'Leucine' & Carbon_Source_2 == 'Glucose',]
+    CitLeudf <- DiffEnvdf[Carbon_Source_1 == 'Leucine' & Carbon_Source_2 == 'Citrate',]
+    DiffEnvSameInocdf = DiffEnvdf[Same_Inoculum == TRUE]
+    DiffEnvDiffInocdf = DiffEnvdf[Same_Inoculum == FALSE]
     
-    #Variants for figure 1 by same inouclum
-    H_olm<- rbind(H_olm,calc_lm(tHd,median(tdoc_df$Overlap)))
-    H_lowess<- rbind(H_lowess,calc_lowess(tHd))
-    I_olm<- rbind(I_olm,calc_lm(tId,median(tdoc_df$Overlap)))
-    I_lowess<- rbind(I_lowess,calc_lowess(tId))
+    #first fit data for same environment (using median for same environment pairs)
+    SameEnv_olm<- rbind(SameEnv_olm,calc_lm(SameEnvdf,median(SameEnvdf$Overlap)))
+    SameEnv_lowess<- rbind(SameEnv_lowess,calc_lowess(SameEnvdf))
+    SameEnvSameInoc_olm  = rbind(SameEnvSameInoc_olm,calc_lm(SameEnvSameInocdf,median(SameEnvdf$Overlap)))
+    SameEnvSameInoc_lowess = rbind(SameEnvSameInoc_lowess,calc_lowess(SameEnvSameInocdf))
+    SameEnvDiffInoc_olm = rbind(SameEnvDiffInoc_olm,calc_lm(SameEnvDiffInocdf,median(SameEnvdf$Overlap)))
+    SameEnvDiffInoc_lowess = rbind(SameEnvDiffInoc_lowess,calc_lowess(SameEnvDiffInocdf))
+    Glc_olm<- rbind(Glc_olm,calc_lm(Glcdf,median(SameEnvdf$Overlap)))
+    Glc_lowess<- rbind(Glc_lowess,calc_lowess(Glcdf))
+    Cit_olm<- rbind(Cit_olm,calc_lm(Citdf,median(SameEnvdf$Overlap)))
+    Cit_lowess<- rbind(Cit_lowess,calc_lowess(Citdf))
+    Leu_olm<- rbind(Leu_olm,calc_lm(Leudf,median(SameEnvdf$Overlap)))
+    Leu_lowess<- rbind(Leu_lowess,calc_lowess(Leudf))
     
-    #Variants for figure S2 by same inocuulm
-    J_olm<- rbind(J_olm,calc_lm(tJd,median(tDd$Overlap)))
-    J_lowess<- rbind(J_lowess,calc_lowess(tJd))
-    K_olm<- rbind(K_olm,calc_lm(tKd,median(tDd$Overlap)))
-    K_lowess<- rbind(K_lowess,calc_lowess(tKd))
+    #next fit data for different environment (using median for different environment pairs)
+    DiffEnv_olm<- rbind(DiffEnv_olm,calc_lm(DiffEnvdf,median(DiffEnvdf$Overlap)))
+    DiffEnv_lowess<- rbind(DiffEnv_lowess,calc_lowess(DiffEnvdf))
+    DiffEnvSameInoc_olm  = rbind(DiffEnvSameInoc_olm,calc_lm(DiffEnvSameInocdf,median(DiffEnvdf$Overlap)))
+    DiffEnvSameInoc_lowess = rbind(DiffEnvSameInoc_lowess,calc_lowess(DiffEnvSameInocdf))
+    DiffEnvDiffInoc_olm = rbind(DiffEnvDiffInoc_olm,calc_lm(DiffEnvDiffInocdf,median(DiffEnvdf$Overlap)))
+    DiffEnvDiffInoc_lowess = rbind(DiffEnvDiffInoc_lowess,calc_lowess(DiffEnvDiffInocdf))
+    Glc_Cit_olm<- rbind(Glc_Cit_olm,calc_lm(GlcCitdf,median(DiffEnvdf$Overlap)))
+    Glc_Cit_lowess<- rbind(Glc_Cit_lowess,calc_lowess(GlcCitdf))
+    Glc_Leu_olm<- rbind(Glc_Leu_olm,calc_lm(GlcLeudf,median(DiffEnvdf$Overlap)))
+    Glc_Leu_lowess<- rbind(Glc_Leu_lowess,calc_lowess(GlcLeudf))
+    Cit_Leu_olm<- rbind(Cit_Leu_olm,calc_lm(CitLeudf,median(DiffEnvdf$Overlap)))
+    Cit_Leu_lowess<- rbind(Cit_Leu_lowess,calc_lowess(CitLeudf))
     
-    #Variants for figure S10 (reference global median.)
-    L_olm<- rbind(L_olm,calc_lm(tLd,median(tLd$Overlap)))
-    L_lowess<- rbind(L_lowess,calc_lowess(tLd))   
-    M_olm<- rbind(M_olm,calc_lm(tHd,median(tLd$Overlap)))
-    M_lowess<- rbind(M_lowess,calc_lowess(tHd))   
-    N_olm<- rbind(N_olm,calc_lm(tId,median(tLd$Overlap)))
-    N_lowess<- rbind(N_lowess,calc_lowess(tId))   
-    O_olm<- rbind(O_olm,calc_lm(tJd,median(tLd$Overlap)))
-    O_lowess<- rbind(O_lowess,calc_lowess(tJd))   
-    P_olm<- rbind(P_olm,calc_lm(tKd,median(tLd$Overlap)))
-    P_lowess<- rbind(P_lowess,calc_lowess(tKd))   
+    #Finally different combinations of same environment and same inoculum using all is reference point for figure s10
+    All_olm<- rbind(All_olm,calc_lm(All,median(All$Overlap))) #All
+    All_lowess<-  rbind(All_lowess,calc_lowess(All)) #All
+    All_SameEnvSameInoc_olm =  rbind(All_SameEnvSameInoc_olm,calc_lm(SameEnvSameInocdf,median(All$Overlap)))
+    All_SameEnvSameInoc_lowess = rbind(All_SameEnvSameInoc_lowess,calc_lowess(SameEnvSameInocdf))
+    All_DiffEnvSameInoc_olm = rbind(All_DiffEnvSameInoc_olm,calc_lm(DiffEnvSameInocdf,median(All$Overlap)))
+    All_DiffEnvSameInoc_lowess =  rbind(All_DiffEnvSameInoc_lowess,calc_lowess(DiffEnvSameInocdf))
+    All_SameEnvDiffInoc_olm =  rbind(All_SameEnvDiffInoc_olm,calc_lm(SameEnvDiffInocdf,median(All$Overlap)))
+    All_SameEnvDiffInoc_lowess =  rbind(All_SameEnvDiffInoc_lowess,calc_lowess(SameEnvDiffInocdf))
+    All_DiffEnvDiffInoc_olm = rbind(All_DiffEnvDiffInoc_olm,calc_lm(DiffEnvDiffInocdf,median(All$Overlap)))
+    All_DiffEnvDiffInoc_lowess =  rbind(All_DiffEnvDiffInoc_lowess,calc_lowess(DiffEnvDiffInocdf))
   }
   if(null==0){
-    save_summary(olm,lowess,'../Stat_Outputs/DOC_stats.csv')
-    save_summary(A_olm,A_lowess,'../Stat_Outputs/DOC_stats_A.csv')
-    save_summary(B_olm,B_lowess,'../Stat_Outputs/DOC_stats_B.csv')
-    save_summary(C_olm,C_lowess,'../Stat_Outputs/DOC_stats_C.csv')
-    save_summary(D_olm,D_lowess,'../Stat_Outputs/DOC_stats_D.csv')
-    save_summary(E_olm,E_lowess,'../Stat_Outputs/DOC_stats_E.csv')
-    save_summary(F_olm,F_lowess,'../Stat_Outputs/DOC_stats_F.csv')
-    save_summary(G_olm,F_lowess,'../Stat_Outputs/DOC_stats_G.csv')
-    save_summary(H_olm,H_lowess,'../Stat_Outputs/DOC_stats_H.csv')
-    save_summary(I_olm,I_lowess,'../Stat_Outputs/DOC_stats_I.csv')
-    save_summary(J_olm,J_lowess,'../Stat_Outputs/DOC_stats_J.csv')
-    save_summary(K_olm,K_lowess,'../Stat_Outputs/DOC_stats_K.csv')    
-    save_summary(L_olm,L_lowess,'../Stat_Outputs/DOC_stats_L.csv')    
-    save_summary(M_olm,M_lowess,'../Stat_Outputs/DOC_stats_M.csv')    
-    save_summary(N_olm,N_lowess,'../Stat_Outputs/DOC_stats_N.csv')    
-    save_summary(O_olm,O_lowess,'../Stat_Outputs/DOC_stats_O.csv')    
-    save_summary(P_olm,P_lowess,'../Stat_Outputs/DOC_stats_P.csv')    
+    #ALL
+    save_summary(All_olm,All_lowess,'../Stat_Outputs/Curve_Fitting_All.csv')
+    save_summary(All_SameEnvSameInoc_olm,All_SameEnvSameInoc_lowess,'../Stat_Outputs/Curve_Fitting_All_SameEnvSameInoc.csv')
+    save_summary(All_DiffEnvSameInoc_olm,All_DiffEnvSameInoc_lowess,'../Stat_Outputs/Curve_Fitting_All_DiffEnvSameInoc.csv')
+    save_summary(All_SameEnvDiffInoc_olm,All_SameEnvDiffInoc_lowess,'../Stat_Outputs/Curve_Fitting_All_SameEnvDiffInoc.csv')
+    save_summary(All_DiffEnvDiffInoc_olm,All_DiffEnvDiffInoc_lowess,'../Stat_Outputs/Curve_Fitting_All_DiffEnvDiffInoc.csv')
 
+    #SAME ENV
+    save_summary(SameEnv_olm,SameEnv_lowess,'../Stat_Outputs/Curve_Fitting_SameEnv.csv')
+    save_summary(SameEnvSameInoc_olm,SameEnvSameInoc_lowess,'../Stat_Outputs/Curve_Fitting_SameEnvSameInoc.csv')
+    save_summary(SameEnvDiffInoc_olm,SameEnvDiffInoc_lowess,'../Stat_Outputs/Curve_Fitting_SameEnvDiffInoc.csv')
+    save_summary(Glc_olm,Glc_lowess,'../Stat_Outputs/Curve_Fitting_Glucose.csv')
+    save_summary(Cit_olm,Cit_lowess,'../Stat_Outputs/Curve_Fitting_Citrate.csv')
+    save_summary(Leu_olm,Leu_lowess,'../Stat_Outputs/Curve_Fitting_Leucine.csv')
+    
+    #DIfferent Env
+    save_summary(DiffEnv_olm,DiffEnv_lowess,'../Stat_Outputs/Curve_Fitting_DiffEnv.csv')
+    save_summary(DiffEnvSameInoc_olm,DiffEnvSameInoc_lowess,'../Stat_Outputs/Curve_Fitting_DiffEnvSameInoc.csv')
+    save_summary(DiffEnvDiffInoc_olm,DiffEnvDiffInoc_lowess,'../Stat_Outputs/Curve_Fitting_DiffEnvDiffInoc.csv')
+    save_summary(Glc_Cit_olm,Glc_Cit_lowess,'../Stat_Outputs/Curve_Fitting_Glucose_Citrate.csv')
+    save_summary(Glc_Leu_olm,Glc_Leu_lowess,'../Stat_Outputs/Curve_Fitting_Glucose_Leucine.csv')
+    save_summary(Cit_Leu_olm,Cit_Leu_lowess,'../Stat_Outputs/Curve_Fitting_Citrate_Leucine.csv')
+    
     
   } else{
-    save_summary(olm,lowess,'../Stat_Outputs/DOC_stats_Null.csv')
-    save_summary(A_olm,A_lowess,'../Stat_Outputs/DOC_stats_A_Null.csv')
-    save_summary(B_olm,B_lowess,'../Stat_Outputs/DOC_stats_B_Null.csv')
-    save_summary(C_olm,C_lowess,'../Stat_Outputs/DOC_stats_C_Null.csv')
-    save_summary(D_olm,D_lowess,'../Stat_Outputs/DOC_stats_D_Null.csv')
-    save_summary(E_olm,E_lowess,'../Stat_Outputs/DOC_stats_E_Null.csv')
-    save_summary(F_olm,F_lowess,'../Stat_Outputs/DOC_stats_F_Null.csv')
-    save_summary(G_olm,G_lowess,'../Stat_Outputs/DOC_stats_G_Null.csv')
-    save_summary(H_olm,H_lowess,'../Stat_Outputs/DOC_stats_H_Null.csv')
-    save_summary(I_olm,I_lowess,'../Stat_Outputs/DOC_stats_I_Null.csv')
-    save_summary(J_olm,J_lowess,'../Stat_Outputs/DOC_stats_J_Null.csv')
-    save_summary(L_olm,L_lowess,'../Stat_Outputs/DOC_stats_L_Null.csv')    
-    save_summary(M_olm,M_lowess,'../Stat_Outputs/DOC_stats_M_Null.csv')    
-    save_summary(N_olm,N_lowess,'../Stat_Outputs/DOC_stats_N_Null.csv')    
-    save_summary(O_olm,O_lowess,'../Stat_Outputs/DOC_stats_O_Null.csv')    
-    save_summary(P_olm,P_lowess,'../Stat_Outputs/DOC_stats_P_Null.csv')    
+    #ALL
+    save_summary(All_olm,All_lowess,'../Stat_Outputs/Curve_Fitting_All_Null.csv')
+    save_summary(All_SameEnvSameInoc_olm,All_SameEnvSameInoc_lowess,'../Stat_Outputs/Curve_Fitting_All_SameEnvSameInoc_Null.csv')
+    save_summary(All_DiffEnvSameInoc_olm,All_DiffEnvSameInoc_lowess,'../Stat_Outputs/Curve_Fitting_All_DiffEnvSameInoc_Null.csv')
+    save_summary(All_SameEnvDiffInoc_olm,All_SameEnvDiffInoc_lowess,'../Stat_Outputs/Curve_Fitting_All_SameEnvDiffInoc_Null.csv')
+    save_summary(All_DiffEnvDiffInoc_olm,All_DiffEnvDiffInoc_lowess,'../Stat_Outputs/Curve_Fitting_All_DiffEnvDiffInoc_Null.csv')
+    
+    #SAME ENV
+    save_summary(SameEnv_olm,SameEnv_lowess,'../Stat_Outputs/Curve_Fitting_SameEnv_Null.csv')
+    save_summary(SameEnvSameInoc_olm,SameEnvSameInoc_lowess,'../Stat_Outputs/Curve_Fitting_SameEnvSameInoc_Null.csv')
+    save_summary(SameEnvDiffInoc_olm,SameEnvDiffInoc_lowess,'../Stat_Outputs/Curve_Fitting_SameEnvDiffInoc_Null.csv')
+    save_summary(Glc_olm,Glc_lowess,'../Stat_Outputs/Curve_Fitting_Glucose_Null.csv')
+    save_summary(Cit_olm,Cit_lowess,'../Stat_Outputs/Curve_Fitting_Citrate_Null.csv')
+    save_summary(Leu_olm,Leu_lowess,'../Stat_Outputs/Curve_Fitting_Leucine_Null.csv')
+    
+    #DIfferent Env
+    save_summary(DiffEnv_olm,DiffEnv_lowess,'../Stat_Outputs/Curve_Fitting_DiffEnv_Null.csv')
+    save_summary(DiffEnvSameInoc_olm,DiffEnvSameInoc_lowess,'../Stat_Outputs/Curve_Fitting_DiffEnvSameInoc_Null.csv')
+    save_summary(DiffEnvDiffInoc_olm,DiffEnvDiffInoc_lowess,'../Stat_Outputs/Curve_Fitting_DiffEnvDiffInoc_Null.csv')
+    save_summary(Glc_Cit_olm,Glc_Cit_lowess,'../Stat_Outputs/Curve_Fitting_Glucose_Citrate_Null.csv')
+    save_summary(Glc_Leu_olm,Glc_Leu_lowess,'../Stat_Outputs/Curve_Fitting_Glucose_Leucine_Null.csv')
+    save_summary(Cit_Leu_olm,Cit_Leu_lowess,'../Stat_Outputs/Curve_Fitting_Citrate_Leucine_Null.csv')
+
   }
   return()
 }
-# 
-# generate_stats <-function(dat,n,null){
-#   # Calculate F and m for every bootstrap realization for figures 2F and supp2
-#   f_data = matrix(nrow=9,ncol=n)
-#   slope_data = matrix(nrow=9,ncol=n)
-#   for(j in 1:n ){
-#     print(j)
-#     tdoc_df = dat[Run==j,]
-#     med = median(tdoc_df$Overlap)
-#     Ad <- tdoc_df[Same_Environment == TRUE,]
-#     Bd <- tdoc_df[Carbon_Source_1 == 'Glucose'& Same_Environment == TRUE,]
-#     Cd <- tdoc_df[Carbon_Source_1 == 'Citrate'& Same_Environment == TRUE,]
-#     Dd <- tdoc_df[Carbon_Source_1 == 'Leucine'& Same_Environment == TRUE,]
-#     Ed <- tdoc_df[Same_Environment == FALSE,]
-#     Fd <- tdoc_df[Carbon_Source_1 == 'Glucose'& Carbon_Source_2 == 'Citrate',]
-#     Gd <- tdoc_df[Carbon_Source_1 == 'Leucine'& Carbon_Source_2 == 'Citrate',]
-#     Hd <- tdoc_df[Carbon_Source_1 == 'Leucine'& Carbon_Source_2 == 'Glucose',]
-#     dat_list = list(tdoc_df,Ad,Bd,Cd,Dd,Ed,Fd,Gd,Hd)
-#     f_vec = sapply(dat_list,function(x) calc_frac(x))
-#     slope_vec = sapply(dat_list,function(x) is_pos_slope(x,med))
-#     f_data[,j] = f_vec
-#     slope_data[,j] = slope_vec
-#   }
-#   f_data = data.frame(f_data)
-#   slope_data = data.frame(slope_data)
-#   if(null ==0){
-#     fwrite(f_data,'../Stat_Outputs/Frac_data.csv')
-#     fwrite(slope_data,'../Stat_Outputs/Slope_data.csv')
-#   } else{ fwrite(f_data,'../Stat_Outputs/Frac_data_Null.csv')
-#     fwrite(slope_data,'../Stat_Outputs/Slope_data_Null.csv')}
-#   return()
-# }
+
 
 set.seed(1)
-null = 0
-
-if(null == 0){
-  doc_df_b=fread('../Data/Dissimilarity_Overlap_Bootstrapped.csv')
-}else{
-  doc_df_b=fread('../Data/Dissimilarity_Overlap_Bootstrapped_Null.csv')
-}
+doc_df_b=fread('../Data/Dissimilarity_Overlap_Bootstrapped.csv')
 doc_df_b = doc_df_b[Dissimilarity>0,]
-generate_curves(doc_df_b,500,null)
+generate_curves(doc_df_b,500,0)
 set.seed(1)
-null = 1
-
-if(null == 0){
-  doc_df_b=fread('../Data/Dissimilarity_Overlap_Bootstrapped.csv')
-}else{
-  doc_df_b=fread('../Data/Dissimilarity_Overlap_Bootstrapped_Null.csv')
-}
+doc_df_b=fread('../Data/Dissimilarity_Overlap_Bootstrapped_Null.csv')
 doc_df_b = doc_df_b[Dissimilarity>0,]
-generate_curves(doc_df_b,500,null)
+generate_curves(doc_df_b,500,1)
