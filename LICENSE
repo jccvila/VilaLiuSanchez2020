@@ -2,11 +2,11 @@ MIT License
 
 Copyright (c) 2020 Jean Vila
 
-Note this license applies to the entire contents of this repository except for the following files
-Acosta.csv and Jousset.csv which contain third party data that can be acquired by refering to the citations in the manuscript.
-To cite the manuscript please see:Dissimilarity-Overlap Analysis of Replicate Enrichment Communities Vila, Liu Sanchez 2019
- 
+Note this license applies to the entire contents of this repository 
 
+To cite the manuscript and code please see:Dissimilarity-Overlap Analysis of Replicate Enrichment Communities Vila, Liu Sanchez 2019
+Microbial Community Data included here comes from Goldford et al 2018, Emergent Simplicity in Microbial Community Assembly. 
+ 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights

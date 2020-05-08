@@ -14,5 +14,11 @@ Dada_Processing.R - Extract data from DADA2 output and rarefies to constant read
 DOC.R - Performs DOC analysis on Equilibrium data (with 500 bootstrap realizations)
 Bootstrap_Curve_Fitting.R - Performs LOWESS and LM Fitting on all 500 bootstrap realizations (gateing by the different criteria used). 
 Bootstrap_Curve_Fitting_Citrobacter.R - Performs LOWESS and LM Fitting to all 500 bootstrap realizations gating by presence/absence of citrobacter.
+Bootstrap_Tests.R - Performs T-tests on all 500 bootstrap realizations for all the pairwise comparisons analyzed in the paper.
+
+Figure generating scripts
+
+The script title corresponds to the figure title in the paper
+
 
 
