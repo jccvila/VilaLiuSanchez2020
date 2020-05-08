@@ -20,5 +20,7 @@ Figure generating scripts
 
 The script title corresponds to the figure title in the paper
 
+Note the doi for version v1.0.0 is 10.5281/zenodo.3817698	
+
 
 
